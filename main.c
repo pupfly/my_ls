@@ -14,20 +14,98 @@
 // 
 // =====================================================================================
 
-#include </home/pupf/MyCode/code_of_ls/declarations.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include "declarations.h"
+#include "/home/pupf/MyCode/code_of_ls/declarations.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
+  head.next = NULL;
+ // get_all_name(1,"/usr/");
+  int i,j,num,k;
+  char path[PATH_MAX];
+  char param[32];
+  int flag=NONE;
   struct stat buf;
-  if (lstat("declarations.h",&buf)==-1)
+  j = 0;
+  num = 0;
+ // printf("%d\n",argc);
+  for (i = 1;i < argc;i++)
   {
-   printf("du cuo le !");
-   exit(0);
+    if (argv[i][0] == '-')
+    {
+      for (k =1;k < strlen(argv[i]);k++)
+      {
+	param[j++] = argv[i][k];
+      }
+      num++;//"-"的个数
+      param[j] = '\0';
+    }
   }
-  out_all(buf);
+  //确定参数
+  if (strcmp(param,"a") == 0)
+  {
+    flag = A;
+  }
+  else if (strcmp(param,"l") == 0)
+  {
+    flag = L;
+  }
+  else if (strcmp(param,"al") == 0 ||strcmp(param,"la") == 0)
+  {
+    flag = AL;
+  }
+  else if (strcmp(param,"R") == 0)
+  {
+    flag = R;
+  }
+  else if(strlen(param) != 0)
+  {
+    printf("参数无效\n");
+    exit(1);
+  }
+   if ((num + 1) == argc)
+  {
+    strcpy(path,"./");
+    path[2] = '\0';
+    get_all_name(flag,path);
+    return 0;
+  }
+  for (i = 1;i < argc;i++)
+  {
+    if (argv[i][0] == '-')
+    {
+      continue;
+    }
+    else
+    {
+      strcpy(path,argv[i]);
+      if (lstat(path,&buf) == -1)
+      {
+		perror("lstat");
+		exit(1);
+      }
+      if (S_ISDIR(buf.st_mode))
+      {
+		if (path[strlen(path)-1] != '/')
+		{
+		  path[strlen(path)] = '/';
+		  path[strlen(path) + 1] = '/0';
+		}
+		else
+		{
+		  path[strlen(path) + 1] = '/0';
+		}
+		get_all_name(flag,path);
+      }
+      else
+      {
+		show_with_param(flag,path);
+		if (flag == 0)
+		{
+		  printf("\n");
+		}
+      }
+    }
+  }
   return 0;
 }
 
