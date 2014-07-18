@@ -21,7 +21,7 @@ int main(int argc, char **argv)
   head.next = NULL;
  // get_all_name(1,"/usr/");
   int i,j,num,k;
-  char path[PATH_MAX];
+  char path[PATH_MAX + 1];
   char param[32];
   int flag=NONE;
   struct stat buf;
@@ -56,6 +56,51 @@ int main(int argc, char **argv)
   else if (strcmp(param,"R") == 0)
   {
     flag = R;
+    if ((num + 1) == argc)
+    {
+      strcpy(path,"./");
+      path[2] = '\0';
+      print_all_name_for_R(flag,path);
+      return 0;
+    }
+    for (i = 1;i < argc;i++)
+    {
+      if (argv[i][0] == '-')
+      {
+	continue;
+      }
+      else
+      {
+	strcpy(path,argv[i]);
+	if (lstat(path,&buf) == -1)
+	{
+		  perror("lstat");
+		  exit(1);
+	}
+	if (S_ISDIR(buf.st_mode))
+	{
+		  if (path[strlen(path)-1] != '/')
+		  {
+		    path[strlen(path)] = '/';
+		    path[strlen(path) + 1] = '\0';
+		  }
+		  else
+		  {
+		    path[strlen(path) + 1] = '\0';
+		  }
+		  print_all_name_for_R(flag,path);
+	}
+	else
+	{
+		  show_with_param(flag,path,flag);
+		  if (flag == 0)
+		  {
+		    printf("\n");
+		  }
+	}
+      }
+    }
+    return;
   }
   else if(strlen(param) != 0)
   {
@@ -88,17 +133,17 @@ int main(int argc, char **argv)
 		if (path[strlen(path)-1] != '/')
 		{
 		  path[strlen(path)] = '/';
-		  path[strlen(path) + 1] = '/0';
+		  path[strlen(path) + 1] = '\0';
 		}
 		else
 		{
-		  path[strlen(path) + 1] = '/0';
+		  path[strlen(path) + 1] = '\0';
 		}
 		get_all_name(flag,path);
       }
       else
       {
-		show_with_param(flag,path);
+		show_with_param(flag,path,flag);
 		if (flag == 0)
 		{
 		  printf("\n");
@@ -106,6 +151,7 @@ int main(int argc, char **argv)
       }
     }
   }
+  destory_stud(&head);
   return 0;
 }
 

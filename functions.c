@@ -78,10 +78,10 @@ void out_all(struct stat buffer)//显示一个文件的所有信息
   printf(" ");
   psd=getpwuid(buffer.st_uid);
   grp=getgrgid(buffer.st_gid);
-  printf("%4d  ",buffer.st_nlink);
+  printf("%4ld  ",buffer.st_nlink);
   printf("%-8s",psd->pw_name);
   printf("%-8s",grp->gr_name);
-  printf("%6d",buffer.st_size);
+  printf("%6ld",buffer.st_size);
   strcpy(b_time,ctime(&buffer.st_mtime));
   b_time[strlen(b_time) - 1] = '\0';
   printf(" %s",b_time);
@@ -135,7 +135,7 @@ void get_all_name(int flag , char *path)//获取一个目录下的所有文件
    p = &head;
    while((p=p->next) != NULL)
    {
-     show_with_param(flag ,p->name);
+     show_with_param(flag ,p->name,flag);
    }
   if (flag == 0 ||flag == 1)
   {
@@ -163,7 +163,7 @@ void out_a_filename(char *name,int *leave_len)//显示一个文件名
   *leave_len -= (MAX_NAME_LEN + 2);
 }
 
-void show_with_param(int flag ,char *path)//带解析参数的显示函数
+void show_with_param(int flag ,char *path ,int flag2)//带解析参数的显示函数
 {
   int i,j;
   struct stat buf;
@@ -180,10 +180,28 @@ void show_with_param(int flag ,char *path)//带解析参数的显示函数
     name[j++] = path[i];
   }
   name[j] = '\0';
+  if ((path[strlen(path) - 1] == '.') && (path[strlen(path) - 2] == '.') && flag == R)
+  {
+    path[strlen(path) - 3] = '\0';
+  }
+  char s[]="..";
   if ((lstat(path,&buf)) == -1)
   {
-    perror("lstat");
-    exit(1);
+     if (flag2 == R)
+      string_in_str(path,s);
+  }
+  if ((lstat(path,&buf)) == -1)
+  {
+    if (flag2 != R)
+    {
+       perror("test_lstat");
+      exit(0);
+    }
+    else
+    {
+      printf("Open path: %s failed\n",path);
+      return;
+    }
   }
   switch (flag)
   {
@@ -208,7 +226,9 @@ void show_with_param(int flag ,char *path)//带解析参数的显示函数
       printf(" %-s\n",name);
       break;
     case R:
-    {}
+    {
+      print_all_name_for_R(R,name);
+    }
     break;
   }
 }
@@ -229,7 +249,7 @@ void sort_stud(struct filenames *head)//链表排序函数,避免结构体复制
 	{
 		min_node = p1->next;
 		before_min = p1;
-		for(p2 = min_node->next,p3 = min_node;p2->next != NULL;p2 = p2->next , p3 = p3->next)
+		for(p2 = min_node->next,p3 = min_node;p2 != NULL;p2 = p2->next , p3 = p3->next)
 		{
 			if(strcmp(p2->name,min_node->name) < 0)
 			{
@@ -254,19 +274,166 @@ void sort_stud(struct filenames *head)//链表排序函数,避免结构体复制
 	    break;
 	  }
 	}
-	temp = head->next->next->next;
-	head->next->next = temp2;
-	temp2->next = temp;
-	temp = head;
-	int i = 0;
-	while ((temp = temp->next) != NULL)
+	if (temp2->name[strlen(temp2->name)-1] == '.' && temp2->name[strlen(temp2->name)-2] == '.')//确认文件名为".."
 	{
-	  if (temp->next == temp2)
-	    i++;
-	  if (i == 2)
+	  temp = head->next->next;
+	  head->next->next = temp2;
+	  temp2->next = temp;
+	  temp = head;
+	  int i = 0;
+	  while ((temp = temp->next) != NULL)
 	  {
-	    temp->next = NULL;
-	    break;
+	    if (temp->next == temp2)
+	      i++;
+	    if (i == 2)
+	    {
+	      temp->next = NULL;
+	      break;
+	    }
 	  }
+	}
+}
+
+void print_all_name_for_R(int flag ,char *path)//为参数"-R"设计的获取文件名函数,(从get_all_name()复制修改而来)
+{
+  struct filenames t;
+  t.next = NULL;
+  struct stat buf;
+  DIR *dir;
+  struct dirent *ptr;
+  int count = 0;
+  int i,j;
+  char filename[256];
+  char name[256];
+  
+  if (( dir = opendir(path)) == NULL)
+  {
+    return;
+  }
+  while((ptr = readdir(dir)) != NULL)
+  {
+    if (MAX_NAME_LEN < strlen(ptr->d_name))
+    {
+      MAX_NAME_LEN = strlen(ptr->d_name);
+    }
+    count++;
+  }
+  if (count > 256)
+  {
+    printf("Too many files under %s\n",path);
+  }
+  closedir(dir);
+  if (( dir = opendir(path)) == NULL)
+  {
+    perror("opendir");
+    return;
+  }
+  for (i = 0; i < count;i++)
+  {
+   if (( ptr = readdir(dir)) == NULL)
+    {
+      perror("opendir");
+      return;
+    }
+    strcpy(filename, path);
+    strcat(filename,ptr->d_name);
+    add_to_stud(&t ,filename);
+  }
+   count = 0;
+   sort_stud(&t);
+   struct filenames *p;
+   p = &t;
+   printf("路径:%s:\n",path);
+   while((p=p->next) != NULL)//显示当前目录的所有文件,flag使用NONE
+   {
+     if (path[strlen(path) - 1] == '.' && path[strlen(path) - 2] == '.')
+	path[strlen(path) - 2] = '\0';
+     show_with_param(NONE ,p->name ,R);
+    }
+    printf("\n");
+    closedir(dir);
+    p = &t;
+   while((p = p->next) != NULL)//显示子目录的所有文件,flag使用NONE
+   {
+     if (p->name[strlen(p->name) - 2] == '.' || p->name[strlen(p->name) - 1] == '.')
+       continue;
+  //获取文件或目录名字
+    for (i = 0,j = 0;i < strlen(p->name);i++)
+    {
+      if (p->name[i] == '/')//出现次级目录,将J归0
+      {
+	j = 0;
+	continue;
+      }
+      name[j++] = p->name[i];
+    }
+    name[j] = '\0';
+    if (strcmp(name,"..") == 0 || strcmp(name,".")== 0)
+      continue;
+    if (name[0] != '.')
+    {
+     if (lstat(p->name,&buf) == -1)
+	{
+		  //perror("lstat");
+		  continue;
+	}
+	if (S_ISDIR(buf.st_mode))
+	{
+		  //strncpy(path,p->name,strlen(p->name));
+		  if (p->name[strlen(p->name)-1] != '/')
+		  {
+		    p->name[strlen(p->name)] = '/';
+		    p->name[strlen(p->name) + 1] = '\0';
+		  }
+		  else
+		  {
+		    p->name[strlen(p->name) + 1] = '\0';
+		  }
+		  print_all_name_for_R(flag,p->name);
+	}
+  }
+   }
+   destory_stud(&t);   
+}
+
+void destory_stud(struct filenames *head)//销毁链表函数
+{
+  struct filenames *p1,*p2;
+  p2 = head->next;
+  while (p2 != NULL)
+  {
+    p1 = p2->next;
+    free(p2);
+    p2 = p1;
+  }
+  head = NULL;
+}
+void string_in_str(char str1[],char str2[])
+{
+	int n=0,l=0,i;
+	char *p1=str1;
+	char *p2=str2;
+	while(*p2++!='\0')
+		l++;
+	p2=str2;
+	while (*p1!='\0')
+	{
+		while(*p1++==*p2++);
+		if (*(--p2)=='\0')
+		{
+			for (i=n;str1[i+l]!='\0';i++)
+				str1[i]=str1[i+l];
+			str1[i]='\0';
+			p2=str2;
+			p1=str1+n;
+			continue;
+		}
+		if(str1[n+l]=='\0'&&*(--p2)=='\0')
+		{
+			str1[n]='\0';
+			return;
+		}
+			p2=str2;
+			p1=str1+(++n);
 	}
 }

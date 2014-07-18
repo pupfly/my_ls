@@ -54,11 +54,14 @@ void get_all_name(int flag , char *path);//获取一个目录下的所有文件,
 
 void out_a_filename(char *name,int *leave_len);//显示一个文件名
 
-void show_with_param(int flag ,char *path);//带解析参数的显示函数
+void show_with_param(int flag ,char *path ,int flag2);//带解析参数的显示函数
 
 void add_to_stud(struct filenames *head , char *name);//链表插入函数
 
 void sort_stud(struct filenames *head);//链表排序函数
 
+void destory_stud(struct filenames *head);//销毁链表函数
 
+void print_all_name_for_R(int flag ,char *path);//为参数"-R"设计的获取文件
 
+void string_in_str(char str1[],char str2[]);//删除子字符串函数,方便对路径的更改
