@@ -9,7 +9,7 @@
 //       Revision:  none
 //       Compiler:  g++
 //
-//         Author:  pupengfei, 
+//         Author:  pupengfei
 //        Company:  
 // 
 // =====================================================================================
